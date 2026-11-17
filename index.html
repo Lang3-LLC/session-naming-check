@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Naming Check — Lang3</title>
+<meta name="description" content="Free Pro Tools session naming check. Reads the Audio tracks from a Session Info as Text export and reports naming inconsistencies. Runs entirely in your browser — nothing is uploaded.">
+<meta name="robots" content="index,follow">
+<link rel="canonical" href="https://lang3.co/tools/session-check/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Lang3">
+<meta property="og:title" content="Session Naming Check — Lang3">
+<meta property="og:description" content="Drop a Pro Tools Session Info as Text export. Get a naming report in seconds. Runs in your browser — nothing is uploaded.">
+<meta property="og:url" content="https://lang3.co/tools/session-check/">
+<meta property="og:image" content="https://lang3.co/assets/og/session-check-og.jpg">
+<meta name="twitter:image" content="https://lang3.co/assets/og/session-check-og.jpg">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:site" content="@Lang3LLC">
+<meta name="twitter:creator" content="@Lang3LLC">
+<style>
+
+:root{
+  --paper:#EDEBE5;--paper-2:#E4E1D8;--card:#F6F4EE;--card-2:#FCFBF7;
+  --ink:#21201F;--ink-2:#5A5855;--ink-3:#605E5B;
+  --line:rgba(33,32,31,.16);--line-2:rgba(33,32,31,.34);
+  --on-ink:#F2EFE7;--brand:#F47D5C;--brand-ink:#DE5E3C;--brand-deep:#B34427;
+  --sans:'General Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:'Space Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+  --maxw:1180px;
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:1.6}
+.wrap{max-width:var(--maxw);margin:0 auto;padding:0 clamp(20px,5vw,56px)}
+a{color:inherit;text-decoration:none}
+
+/* ============ Nav (shared with lang3.co) ============ */
+.nav{position:sticky;top:0;z-index:50;background:rgba(237,235,229,.92);
+  backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--line)}
+.nav__in{max-width:1180px;margin:0 auto;padding:0 clamp(20px,5vw,48px);display:grid;
+  grid-template-columns:1fr auto 1fr;align-items:center;min-height:80px;gap:16px}
+.nav__side{display:flex;align-items:center;gap:26px}
+.nav__side--right{justify-content:flex-end}
+.nav__link{font-size:13.5px;font-weight:500;color:var(--ink);padding:6px 0;position:relative;transition:color .18s ease}
+.nav__link:hover{color:var(--brand)}
+.nav__wordmark{justify-self:center;display:inline-flex;align-items:center;line-height:0;color:var(--ink)}
+.nav__logo{height:48px;width:auto;display:block}
+.nav__toggle{display:none;width:44px;height:44px;border:1px solid var(--line-2);background:transparent;
+  cursor:pointer;align-items:center;justify-content:center;flex-direction:column;gap:5px}
+.nav__toggle span{display:block;width:18px;height:1.5px;background:var(--ink)}
+.nav__menu{display:none}
+.sf-toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,16px);background:var(--ink);color:var(--on-ink);
+  font-family:var(--mono);font-size:12px;letter-spacing:.03em;line-height:1.6;padding:12px 18px;max-width:min(90vw,460px);
+  opacity:0;pointer-events:none;transition:opacity .22s ease,transform .22s ease;z-index:80}
+.sf-toast.show{opacity:1;transform:translate(-50%,0)}
+@media (max-width:920px){
+  .nav__side .nav__link{display:none}
+  .nav__toggle{display:flex}
+  .nav__in{grid-template-columns:auto 1fr auto;min-height:60px}
+  .nav__wordmark{justify-self:center}
+  .nav__side--right{gap:10px}
+  .nav__logo{height:34px}
+  .nav__menu{display:none;position:absolute;top:60px;left:0;right:0;background:var(--paper);
+    border-bottom:1px solid var(--line-2);padding:10px clamp(20px,5vw,48px) 22px;flex-direction:column}
+  .nav__menu.open{display:flex}
+  .nav__menu a{padding:14px 0;border-bottom:1px solid var(--line);font-size:16px;font-weight:500}
+}
+@media (max-width:560px){
+  .nav__logo{height:32px}
+}
+
+
+/* head */
+
+/* hero */
+.hero{padding:clamp(36px,6vw,76px) 0 clamp(24px,3.4vw,40px)}
+.kicker{font-family:var(--mono);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--brand-ink)}
+h1{margin:14px 0 0;font-size:clamp(30px,4.4vw,50px);line-height:1.08;font-weight:400;letter-spacing:-.02em;max-width:22ch}
+.lede{margin:18px 0 0;font-size:clamp(15px,1.5vw,17px);line-height:1.62;color:var(--ink-2);max-width:56ch}
+.privacy{margin:20px 0 0;display:inline-flex;align-items:center;gap:9px;font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--ink-2);border:1px solid var(--line);padding:9px 13px;background:var(--card-2)}
+.privacy i{width:7px;height:7px;background:#416e3d;display:block;border-radius:50%;flex:none}
+
+/* input */
+.stage{padding-bottom:clamp(40px,6vw,80px)}
+.drop{border:1px dashed var(--line-2);background:var(--card);padding:clamp(24px,3.5vw,40px);text-align:center;transition:border-color .18s,background .18s;cursor:pointer}
+.drop:hover,.drop.hot{border-color:var(--brand);background:var(--card-2)}
+.drop__t{font-size:16px;font-weight:500}
+.drop__s{margin-top:8px;font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;color:var(--ink-3);line-height:1.7}
+.drop__b{margin-top:16px;display:inline-flex;align-items:center;gap:8px;min-height:42px;padding:0 18px;background:var(--ink);color:var(--on-ink);font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;border:0;cursor:pointer}
+.drop__b:hover{background:#000}
+.paste{margin-top:18px}
+.paste summary{font-family:var(--mono);font-size:11px;letter-spacing:.06em;color:var(--ink-2);cursor:pointer;list-style:none}
+.paste summary::-webkit-details-marker{display:none}
+.paste summary::before{content:"＋ ";color:var(--brand-ink)}
+.paste[open] summary::before{content:"− "}
+.paste textarea{margin-top:12px;width:100%;min-height:150px;padding:14px;background:var(--card-2);border:1px solid var(--line);font-family:var(--mono);font-size:12px;line-height:1.6;color:var(--ink);resize:vertical;outline:none}
+.paste textarea:focus{border-color:var(--brand)}
+.paste__go{margin-top:10px;min-height:40px;padding:0 16px;background:transparent;border:1px solid var(--line-2);font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink);cursor:pointer}
+.paste__go:hover{border-color:var(--ink)}
+.err{margin-top:14px;font-family:var(--mono);font-size:12px;color:#a64732;line-height:1.7}
+
+/* results */
+.report{display:none;padding-bottom:clamp(48px,7vw,96px)}
+.report.on{display:block}
+.sheet{background:var(--card-2);border:1px solid var(--line);padding:clamp(20px,3vw,34px)}
+.sheet__head{display:flex;flex-wrap:wrap;align-items:flex-start;justify-content:space-between;gap:16px;border-bottom:1px solid var(--line);padding-bottom:18px}
+.sheet__name{font-size:clamp(20px,2.4vw,26px);font-weight:500;line-height:1.25;word-break:break-word}
+.sheet__meta{margin-top:8px;font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;color:var(--ink-2);line-height:1.8}
+.sheet__acts{display:flex;gap:8px;flex-wrap:wrap}
+.act{min-height:40px;padding:0 15px;border:1px solid var(--line-2);background:transparent;font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink);cursor:pointer;white-space:nowrap}
+.act:hover{border-color:var(--ink);background:var(--paper-2)}
+.act--solid{background:var(--ink);border-color:var(--ink);color:var(--on-ink)}
+.act--solid:hover{background:#000;border-color:#000}
+
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:1px;background:var(--line);border-bottom:1px solid var(--line)}
+.stat{background:var(--card-2);padding:14px 16px}
+.stat__n{font-size:22px;font-weight:500;line-height:1.1}
+.stat__l{margin-top:5px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+
+.verdict{padding:18px 0 4px;display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.verdict strong{font-size:clamp(17px,2vw,20px);font-weight:600}
+.verdict span{font-family:var(--mono);font-size:11.5px;letter-spacing:.04em;color:var(--ink-2)}
+
+.issues{list-style:none;margin:14px 0 0;padding:0;display:grid;gap:1px;background:var(--line);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.issue{background:var(--card-2);padding:18px 0}
+.issue__top{display:flex;gap:12px;align-items:flex-start}
+.issue__idx{font-family:var(--mono);font-size:11px;color:var(--ink-3);padding-top:4px;flex:none;width:22px}
+.issue__body{flex:1;min-width:0}
+.issue__t{font-size:17px;font-weight:500;line-height:1.35}
+.issue__d{margin-top:6px;font-size:14px;line-height:1.62;color:var(--ink-2)}
+.issue__list{margin-top:10px;display:flex;flex-wrap:wrap;gap:6px}
+.grp{margin-top:14px;padding-left:12px;border-left:2px solid var(--line-2)}
+.grp__l{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3)}
+.tk{font-family:var(--mono);font-size:11px;letter-spacing:.02em;padding:4px 8px;background:var(--paper-2);border:1px solid var(--line);color:var(--ink);word-break:break-all}
+.tk--warn{border-color:rgba(222,94,60,.5);color:var(--brand-deep)}
+.tag{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:3px 7px;border:1px solid var(--line-2);color:var(--ink-2);flex:none;margin-top:2px}
+.tag--hi{border-color:rgba(222,94,60,.55);color:var(--brand-deep)}
+
+.empty{padding:26px 0;font-size:15px;color:var(--ink-2)}
+.empty strong{display:block;color:var(--ink);font-weight:500;margin-bottom:6px}
+
+/* next step */
+.next{margin-top:clamp(28px,4vw,44px);border:1px solid var(--line);background:var(--card);padding:clamp(20px,3vw,30px);display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+.next__copy{max-width:60ch}
+.next__k{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--brand-ink)}
+.next__t{margin-top:10px;font-size:19px;font-weight:500;line-height:1.4}
+.next__d{margin-top:8px;font-size:14px;line-height:1.65;color:var(--ink-2)}
+.next__b{display:inline-flex;align-items:center;gap:10px;min-height:46px;padding:0 20px;background:var(--ink);color:var(--on-ink);font-family:var(--mono);font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.next__b:hover{background:#000}
+
+/* limits */
+.limits{margin-top:clamp(28px,4vw,44px);border-top:1px solid var(--line);padding-top:22px}
+.limits h2{margin:0;font-family:var(--mono);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-3)}
+.limits p{margin:10px 0 0;font-size:13.5px;line-height:1.7;color:var(--ink-2);max-width:78ch}
+.limits code{font-family:var(--mono);font-size:12px;background:var(--paper-2);padding:2px 5px}
+
+/* foot */
+.foot{border-top:1px solid var(--line);padding:26px 0 40px;display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:10.5px;letter-spacing:.05em;color:var(--ink-3)}
+
+@media print{
+  .nav,.hero,.stage,.foot,.next,.limits,.sheet__acts{display:none!important}
+  .report{display:block!important;padding:0}
+  body{background:#fff}
+  .sheet{border:0;padding:0}
+  .issues{background:none}
+  .issue{background:#fff;border-bottom:1px solid #ddd}
+  .tk{border:1px solid #ddd;background:#f4f4f4}
+}
+</style>
+</head>
+<body>
+
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <div class="kicker">Free tool · no account</div>
+      <h1>Session naming check.</h1>
+      <p class="lede">Drop a Pro Tools <em>Session Info as Text</em> export. In a second you get a report of the names that drifted apart: the same mic under two names, the duplicated take, the spelling that differs by one dot.</p>
+      <div class="privacy"><i></i>Runs entirely in this tab. Your file never leaves the browser.</div>
+    </div>
+  </section>
+
+  <section class="stage">
+    <div class="wrap">
+      <div class="drop" id="drop" role="button" tabindex="0" aria-label="Choose a Session Info as Text file">
+        <div class="drop__t">Drop the .txt here</div>
+        <div class="drop__s">Session Info as Text &nbsp;·&nbsp; File → Export → Session Info as Text</div>
+        <button class="drop__b" type="button" id="pick">Choose file</button>
+        <input type="file" id="file" accept=".txt,text/plain" hidden>
+      </div>
+
+      <details class="paste">
+        <summary>Or paste the text</summary>
+        <textarea id="pasteBox" placeholder="Paste the contents of the exported .txt here…" spellcheck="false"></textarea>
+        <button class="paste__go" type="button" id="pasteGo">Check this text</button>
+      </details>
+
+      <div class="err" id="err" hidden></div>
+    </div>
+  </section>
+
+  <section class="report" id="report">
+    <div class="wrap">
+      <div class="sheet">
+        <div class="sheet__head">
+          <div>
+            <div class="sheet__name" id="sName">—</div>
+            <div class="sheet__meta" id="sMeta"></div>
+          </div>
+          <div class="sheet__acts">
+            <button class="act act--solid" type="button" id="copyBtn">Copy report</button>
+            <button class="act" type="button" id="printBtn">Print / PDF</button>
+          </div>
+        </div>
+
+        <div class="stats" id="stats"></div>
+
+        <div class="verdict">
+          <strong id="vCount">—</strong>
+          <span id="vNote"></span>
+        </div>
+
+        <ul class="issues" id="issues"></ul>
+        <div class="empty" id="clean" hidden>
+          <strong>No naming drift found.</strong>
+          Every track name lines up: consistent abbreviation, no duplicate takes, no near-spellings. That is rarer than it sounds.
+        </div>
+      </div>
+
+      <div class="next">
+        <div class="next__copy">
+          <div class="next__k">What this is</div>
+          <div class="next__t">A naming audit, not a session audit.</div>
+          <div class="next__d">This reads the Audio track list from Pro Tools' own export and only reports naming. Routing, buses and plugins live in the session itself, not in that text file — so we don't pretend to see them. Naming is where the hours actually go.</div>
+        </div>
+        <a class="next__b" href="https://lang3.co/#get-access">The assistant that fixes this <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 17L17 7"/><path d="M8 7h9v9"/></svg></a>
+      </div>
+
+      <div class="limits">
+        <h2>What this reads — and what it can't</h2>
+        <p>Input is the text from <code>File → Export → Session Info as Text</code>. That export contains <strong>audio tracks only</strong> — aux, bus, folder, VCA, MIDI and instrument tracks are not in it, at any export setting. So this tool cannot judge routing, bus structure or plugin load. It also never writes to your session: the suggestions are text you copy yourself.</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <div class="wrap" style="display:flex;flex-wrap:wrap;gap:14px;justify-content:space-between;width:100%">
+    <span>Session Naming Check — a free tool by Lang3™ · MIT licensed</span>
+    <span><a href="https://lang3.co/tools/session-check/" style="text-decoration:underline">lang3.co</a></span>
+  </div>
+</footer>
+
+
+<script>
+(function(){
+  'use strict';
+
+  var ABBR = [
+    {short:['k'],                  full:['kick','bassdrum','bd']},
+    {short:['sn'],                 full:['snare']},
+    {short:['hh','hat'],           full:['hihat','hi-hat','hihats']},
+    {short:['oh'],                 full:['overhead','overheads','ohs']},
+    {short:['tm','tom'],           full:['toms']},
+    {short:['gtr','gt'],           full:['guitar','guitars']},
+    {short:['vox','voc'],          full:['vocal','vocals','vox']},
+    {short:['bv'],                 full:['backingvocal','backingvox','bgv']},
+    {short:['lv'],                 full:['leadvocal','leadvox']},
+    {short:['dbl'],                full:['double','doubles']},
+    {short:['syn','synth'],        full:['synthesizer','synthbass']},
+    {short:['perc'],               full:['percussion']},
+    {short:['bass'],               full:['bassguitar','bassg']}
+  ];
+
+  var KEEP_TOKENS = ['cm','cm1','dup','dup1','dup2','dup3','01','02','03','04','05','bounce','print','stem','stems'];
+
+  function norm(s){ return s.toLowerCase().replace(/[\u2018\u2019]/g,"'"); }
+
+  function uniq(a){ var o=[]; a.forEach(function(x){ if(o.indexOf(x)<0) o.push(x); }); return o; }
+
+  function tokenList(name){
+    return name
+      .replace(/^\s*\d+[\.\)]\s*/, '')          // leading track number
+      .split(/[\s._\-]+/)
+      .filter(function(t){ return t.length; });
+  }
+
+  function stripDecor(name){
+    var toks = tokenList(name).filter(function(t){
+      return !/^\d+$/.test(t) && KEEP_TOKENS.indexOf(t) === -1;
+    });
+    return toks;
+  }
+
+  function lev(a,b){
+    if(a===b) return 0;
+    var m=a.length,n=b.length,i,j,prev,cur;
+    if(!m) return n; if(!n) return m;
+    prev=[]; for(j=0;j<=n;j++) prev[j]=j;
+    for(i=1;i<=m;i++){
+      cur=[i];
+      for(j=1;j<=n;j++){
+        cur[j]=Math.min(prev[j]+1, cur[j-1]+1, prev[j-1]+(a.charAt(i-1)===b.charAt(j-1)?0:1));
+      }
+      prev=cur;
+    }
+    return prev[n];
+  }
+
+  function parse(text){
+    var lines = text.split(/\r?\n/);
+    var meta = {};
+    for(var i=0;i<lines.length && i<20;i++){
+      var ln = lines[i];
+      var p = ln.indexOf(':');
+      if(p>0){
+        var k = ln.slice(0,p).trim(), v = ln.slice(p+1).trim();
+        if(k && v && k.indexOf('\t')<0) meta[k.toUpperCase()] = v;
+      }
+    }
+
+    var tracks = [], cur = null;
+    var seen = false;
+    for(var j=0;j<lines.length;j++){
+      var line = lines[j];
+      if(line.indexOf('T R A C K  L I S T I N G') >= 0){ seen = true; continue; }
+      if(!seen) continue;
+      if(line.indexOf('M A R K E R S  L I S T I N G') >= 0) break;
+
+      if(line.indexOf('TRACK NAME:') === 0){
+        var name = line.indexOf('\t')>=0 ? line.split('\t').slice(1).join('\t') : line.slice(11);
+        name = name.replace(/\s+$/,'').replace(/^\s+/,'');
+        var m = name.match(/\s*\((Stereo|Mono|Mono2)\)\s*$/);
+        cur = {
+          raw: name,
+          name: m ? name.slice(0, m.index).replace(/\s+$/,'') : name,
+          width: m ? m[1] : 'Mono',
+          clips: 0
+        };
+        tracks.push(cur);
+      } else if(cur && /^\d+\s*\t\d+/.test(line)){
+        cur.clips++;
+      }
+    }
+
+    // offline files
+    var offline = 0, inOff = false;
+    for(var q=0;q<lines.length;q++){
+      if(lines[q].indexOf('O F F L I N E  F I L E S  I N  S E S S I O N') >= 0){ inOff = true; continue; }
+      if(inOff){
+        if(/^[A-Z] / .test(lines[q] || '') && lines[q].indexOf('  I N  S E S S I O N')>0) break;
+        if(/^\S.*\.(wav|aif|aiff|mp3)/i.test(lines[q])) offline++;
+      }
+    }
+
+    return { meta: meta, tracks: tracks, offline: offline };
+  }
+
+  function analyze(tracks){
+    var issues = [];
+    var names = tracks.map(function(t){ return t.name; });
+
+    function group(title, desc, items, sev, groups){
+      if(!items || !items.length) return;
+      issues.push({title:title, desc:desc, items:items, sev:sev||'mid', groups:groups||null});
+    }
+
+    /* 1. 缩写与全称混用 */
+    var abbrGroups = [], abbrTracks = [];
+    ABBR.forEach(function(pair){
+      var shorts = [], fulls = [], hits = [];
+      tracks.forEach(function(t){
+        var raw = tokenList(t.name);
+        var low = raw.map(norm);
+        var si = -1, fi = -1;
+        low.forEach(function(x, ix){
+          if(si < 0 && pair.short.indexOf(x) >= 0) si = ix;
+          if(fi < 0 && pair.full.indexOf(x) >= 0) fi = ix;
+        });
+        if(si >= 0){ shorts.push(raw[si]); hits.push(t.name); }
+        if(fi >= 0){ fulls.push(raw[fi]); hits.push(t.name); }
+      });
+      if(shorts.length && fulls.length){
+        var sForm = uniq(shorts)[0], fForm = uniq(fulls)[0];
+        abbrGroups.push({label: sForm + ' / ' + fForm, items: hits});
+        hits.forEach(function(n){ if(abbrTracks.indexOf(n) < 0) abbrTracks.push(n); });
+      }
+    });
+    if(abbrGroups.length){
+      group('Same thing, two names',
+            'Both spellings are in use in the same session. Pick one and stay with it — the eye stops trusting a name it has to re-read.',
+            abbrTracks, 'hi', abbrGroups);
+    }
+
+    /* 2. 疑似重复轨（去编号去后缀后高度相似）—— 按差异从小到大取最显著的几组 */
+    var SONG_PARTS = ['a','b','c','d','e','alt','take1','take2'];
+    function isDeliberatePair(na, nb){
+      var ta = stripDecor(na), tb = stripDecor(nb);
+      if(ta.length !== tb.length || ta.length === 0) return false;
+      var diff = [];
+      for(var i=0;i<ta.length;i++){
+        if(ta[i].toLowerCase() !== tb[i].toLowerCase()) diff.push([ta[i].toLowerCase(), tb[i].toLowerCase()]);
+      }
+      if(diff.length !== 1) return false;
+      var p = diff[0];
+      // one token is a substring of the other → different words (ch / pch), not a typo
+      if(p[0] !== p[1] && (p[0].indexOf(p[1]) >= 0 || p[1].indexOf(p[0]) >= 0)) return true;
+      // single-letter part labels (A/B/C…) are intentional, not duplicates
+      if(p[0].length === 1 && p[1].length === 1 &&
+         SONG_PARTS.indexOf(p[0]) >= 0 && SONG_PARTS.indexOf(p[1]) >= 0) return true;
+      return false;
+    }
+    var dupePairs = [];
+    for(var a=0;a<tracks.length;a++){
+      var ka = stripDecor(tracks[a].name).join(' ').toLowerCase();
+      if(!ka || ka.length<6) continue;
+      for(var b=a+1;b<tracks.length;b++){
+        var kb = stripDecor(tracks[b].name).join(' ').toLowerCase();
+        if(!kb || ka===kb || kb.length<6) continue;
+        if(isDeliberatePair(tracks[a].name, tracks[b].name)) continue;
+        var d = lev(ka,kb);
+        if(d <= 2){
+          dupePairs.push({a:tracks[a].name, b:tracks[b].name, d:d, len:Math.min(ka.length,kb.length)});
+        }
+      }
+    }
+    if(dupePairs.length){
+      dupePairs.sort(function(x,y){ return x.d - y.d || y.len - x.len; });
+      var dg = [], used = {};
+      dupePairs.forEach(function(p){
+        if(dg.length >= 5) return;
+        if(used[p.a] || used[p.b]) return;
+        used[p.a] = 1; used[p.b] = 1;
+        dg.push({label: p.d===0 ? 'identical after stripping' : 'differs by '+p.d+' character'+(p.d===1?'':'s'), items:[p.a, p.b]});
+      });
+      if(dg.length){
+        var dItems = [];
+        dg.forEach(function(g){ g.items.forEach(function(n){ if(dItems.indexOf(n)<0) dItems.push(n); }); });
+        group('Almost the same name, on separate tracks',
+              'These read as the same thing typed twice. Worth a listen to confirm they are not duplicate takes kept "just in case".',
+              dItems, 'hi', dg);
+      }
+    }
+
+    /* 3. dup 家族 */
+    var dups = names.filter(function(n){ return /\bdup(1|2|3)?\b|\.dup/i.test(n); });
+    group('Duplicate-take markers',
+          'dup / dup1 / dup2 are doing different jobs in different places. If these are takes, number them; if they are alternates, say alternate.',
+          dups);
+
+    /* 4. 大小写不统一（token 级） */
+    var caseMap = {};
+    tracks.forEach(function(t){
+      tokenList(t.name).forEach(function(tok){
+        if(tok.length<3) return;
+        var low = tok.toLowerCase();
+        if(!caseMap[low]) caseMap[low] = {};
+        caseMap[low][tok] = (caseMap[low][tok]||0)+1;
+      });
+    });
+    var caseItems = [];
+    Object.keys(caseMap).forEach(function(low){
+      var variants = Object.keys(caseMap[low]);
+      if(variants.length>1){
+        caseItems.push(variants.join(' / '));
+      }
+    });
+    if(caseItems.length){
+      group('Same word, different capitals',
+            'In a ' + tracks.length + '-track session nobody reads every name. The eye trusts capitals to mean something.',
+            caseItems.slice(0,12), 'mid');
+    }
+
+    /* 5. 连续重复片段 cm.cm */
+    var dupTok = names.filter(function(n){ return /(\b\w+\b)[\.\-_ ]+\1\b/i.test(n) || /\.([a-z]{2,4})\.\1\./i.test(n); });
+    group('A word repeated inside one name',
+          'A doubled token usually means the name grew by copy-paste rather than by thinking.',
+          dupTok);
+
+    /* 6. 空格过多 */
+    var spacey = names.filter(function(n){ return (n.match(/ /g)||[]).length >= 3; });
+    group('Long names built from spaces',
+          'Three or more spaces in one name. Legible on screen, painful in a menu and in any export.',
+          spacey.slice(0,20));
+
+    /* 7. 后缀不统一 */
+    var tails = {};
+    tracks.forEach(function(t){
+      var toks = tokenList(t.name);
+      if(!toks.length) return;
+      var last = toks[toks.length-1];
+      if(/^\d+$/.test(last) && toks.length>1) last = toks[toks.length-2]+'_'+last;
+      tails[last] = (tails[last]||0)+1;
+    });
+    var tailKeys = Object.keys(tails).filter(function(k){ return tails[k] >= 2; });
+    if(tailKeys.length >= 3){
+      var top = tailKeys.sort(function(x,y){return tails[y]-tails[x];}).slice(0,6)
+                  .map(function(k){ return k+' ×'+tails[k]; });
+      group('The tail of the name is inconsistent',
+            'Different endings do different things: a take number, a batch tag, a stereo flag. Mixing them makes each one ambiguous.',
+            top);
+    }
+
+    /* 8. 编号 */
+    var nums = [], noNum = [];
+    tracks.forEach(function(t){
+      var m = t.name.match(/^\s*(\d+)\s*[\.\)]/);
+      if(m) nums.push({n:parseInt(m[1],10), len:m[1].length, name:t.name});
+      else noNum.push(t.name);
+    });
+    if(noNum.length){
+      group('No track number', noNum.length+' of '+tracks.length+' tracks carry no leading number.',
+            noNum.slice(0,20));
+    }
+    if(nums.length){
+      var lens = {};
+      nums.forEach(function(x){ lens[x.len]=(lens[x.len]||0)+1; });
+      var lenKeys = Object.keys(lens);
+      if(lenKeys.length>1){
+        group('Numbers with different widths',
+              'Two-digit and three-digit numbering side by side is what sorting by name does to a session.',
+              lenKeys.map(function(k){ return k+'-digit ×'+lens[k]; }));
+      }
+      var sorted = nums.slice().sort(function(a,b){return a.n-b.n;});
+      var gaps = [];
+      for(var g=1;g<sorted.length;g++){
+        if(sorted[g].n - sorted[g-1].n > 1){
+          gaps.push(sorted[g-1].n+' → '+sorted[g].n);
+        }
+      }
+      var repeats = {};
+      nums.forEach(function(x){ repeats[x.n]=(repeats[x.n]||0)+1; });
+      var dupNums = Object.keys(repeats).filter(function(k){ return repeats[k]>1; });
+      if(gaps.length && gaps.length<=8){
+        group('Gaps in the numbering', 'Nothing is missing from your mix — these numbers simply skipped. Usually a deleted track.', gaps, 'low');
+      }
+      if(dupNums.length){
+        group('The same number twice', 'Two tracks sharing an index will sort unpredictably.', dupNums.map(function(k){return '#'+k+' ×'+repeats[k];}), 'hi');
+      }
+    }
+
+    return issues;
+  }
+
+  /* ---------- render ---------- */
+  var elName = document.getElementById('sName');
+  var elMeta = document.getElementById('sMeta');
+  var elStats = document.getElementById('stats');
+  var elIssues = document.getElementById('issues');
+  var elClean = document.getElementById('clean');
+  var elVCount = document.getElementById('vCount');
+  var elVNote = document.getElementById('vNote');
+  var elReport = document.getElementById('report');
+  var elErr = document.getElementById('err');
+
+  var lastReportText = '';
+
+  function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+
+  function render(data){
+    var meta = data.meta, tracks = data.tracks, issues = analyze(tracks);
+
+    var sname = meta['SESSION NAME'] || 'Untitled session';
+    var rate = (meta['SAMPLE RATE']||'').replace(/\.0+$/,'');
+    var depth = meta['BIT DEPTH'] || '';
+    var nTracks = tracks.length;
+    var nStereo = tracks.filter(function(t){return t.width==='Stereo';}).length;
+    var nMono = nTracks - nStereo;
+    var clipRows = tracks.reduce(function(a,t){return a+t.clips;},0);
+    var clipsHeader = parseInt(String(meta['# OF AUDIO CLIPS']||'').replace(/[^\d]/g,''),10);
+    var clips = clipsHeader || clipRows;
+
+    elName.textContent = sname;
+    elMeta.innerHTML = [
+      rate ? esc(rate)+' Hz' : '', depth ? esc(depth) : '',
+      nTracks+' audio tracks', nStereo+' stereo · '+nMono+' mono',
+      data.offline ? (data.offline+' offline files') : 'no offline files'
+    ].filter(Boolean).join(' &nbsp;·&nbsp; ');
+
+    elStats.innerHTML = [
+      ['Audio tracks', nTracks],
+      ['Stereo / Mono', nStereo+' / '+nMono],
+      ['Clips', clips],
+      ['Issues', issues.length]
+    ].map(function(s){
+      return '<div class="stat"><div class="stat__n">'+esc(s[1])+'</div><div class="stat__l">'+esc(s[0])+'</div></div>';
+    }).join('');
+
+    var hi = issues.filter(function(i){return i.sev==='hi';}).length;
+    if(issues.length){
+      elVCount.textContent = issues.length + (issues.length===1?' issue':' issues');
+      elVNote.textContent = hi ? (hi+' worth fixing first') : 'none of these break the session — they cost time';
+      elIssues.style.display='';
+      elClean.hidden = true;
+      elIssues.innerHTML = issues.map(function(it, idx){
+        var tk = function(n){
+          return '<span class="tk'+(it.sev==='hi'?' tk--warn':'')+'">'+esc(n)+'</span>';
+        };
+        var list;
+        if(it.groups){
+          list = it.groups.map(function(g){
+            return '<div class="grp">'
+              + '<div class="grp__l">'+esc(g.label)+'</div>'
+              + '<div class="issue__list">'+g.items.slice(0,10).map(tk).join('')
+              + (g.items.length>10 ? '<span class="tk">+'+(g.items.length-10)+' more</span>' : '')
+              + '</div></div>';
+          }).join('');
+        } else {
+          list = '<div class="issue__list">'+it.items.slice(0,40).map(tk).join('')
+               + (it.items.length>40 ? '<span class="tk">+'+(it.items.length-40)+' more</span>' : '')
+               + '</div>';
+        }
+        return '<li class="issue"><div class="issue__top">'
+          + '<div class="issue__idx">'+String(idx+1).padStart(2,'0')+'</div>'
+          + '<div class="issue__body">'
+          + '<div class="issue__t">'+esc(it.title)+'</div>'
+          + '<div class="issue__d">'+esc(it.desc)+'</div>'
+          + list
+          + '</div>'
+          + '<span class="tag'+(it.sev==='hi'?' tag--hi':'')+'">'+(it.sev==='hi'?'fix first':'notice')+'</span>'
+          + '</div></li>';
+      }).join('');
+    } else {
+      elVCount.textContent = 'Clean';
+      elVNote.textContent = 'no drift detected';
+      elIssues.style.display='none';
+      elClean.hidden = false;
+    }
+
+    /* plain-text report for clipboard */
+    var L = [];
+    L.push('LANG3 — SESSION NAMING CHECK');
+    L.push('—————————————————————————————');
+    L.push(sname);
+    L.push([rate?rate+' Hz':'', depth, nTracks+' audio tracks', nStereo+' stereo', nMono+' mono',
+            clips+' clip rows', data.offline? data.offline+' offline files':'no offline files'].filter(Boolean).join(' · '));
+    L.push('');
+    if(!issues.length){
+      L.push('No naming drift found.');
+    } else {
+      L.push(issues.length+(issues.length===1?' issue':' issues')+' across '+nTracks+' tracks.');
+      L.push('');
+      issues.forEach(function(it, idx){
+        L.push((idx+1)+'. '+it.title+' — '+it.items.length+' item'+(it.items.length===1?'':'s'));
+        L.push('   '+it.desc);
+        var show = it.items.slice(0,12);
+        show.forEach(function(n){ L.push('   · '+n); });
+        if(it.items.length>show.length) L.push('   · +'+(it.items.length-show.length)+' more');
+        L.push('');
+      });
+    }
+    L.push('—');
+    L.push('Checked with Lang3 Session Naming Check · https://lang3.co/tools/session-check/');
+    L.push('Reads Pro Tools "Session Info as Text". Audio tracks only — aux, bus, folder and MIDI tracks are not in that export.');
+
+    lastReportText = L.join('\n');
+    elReport.classList.add('on');
+    elReport.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  function fail(msg){
+    elErr.hidden = false;
+    elErr.textContent = msg;
+    elReport.classList.remove('on');
+  }
+
+  function handle(text, sourceName){
+    elErr.hidden = true;
+    if(!text || !text.trim()){ fail('That file is empty.'); return; }
+    var data;
+    try { data = parse(text); } catch(e){ fail('Could not parse this file. Export from Pro Tools via File → Export → Session Info as Text.'); return; }
+    if(!data.tracks.length){
+      fail('No track list found in “'+(sourceName||'this text')+'”. Make sure the export came from Pro Tools → File → Export → Session Info as Text, and that “Include Track EDL’s” was ticked.');
+      return;
+    }
+    render(data);
+  }
+
+  /* ---------- input wiring ---------- */
+  var drop = document.getElementById('drop');
+  var fileInput = document.getElementById('file');
+  var pick = document.getElementById('pick');
+  var pasteBox = document.getElementById('pasteBox');
+  var pasteGo = document.getElementById('pasteGo');
+
+  pick.addEventListener('click', function(e){ e.stopPropagation(); fileInput.click(); });
+  drop.addEventListener('click', function(){ fileInput.click(); });
+  drop.addEventListener('keydown', function(e){ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); fileInput.click(); } });
+
+  fileInput.addEventListener('change', function(){
+    var f = fileInput.files && fileInput.files[0];
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){ handle(String(r.result), f.name); };
+    r.readAsText(f);
+  });
+
+  ['dragenter','dragover'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.add('hot'); });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    drop.addEventListener(ev, function(e){ e.preventDefault(); drop.classList.remove('hot'); });
+  });
+  drop.addEventListener('drop', function(e){
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(!f) return;
+    var r = new FileReader();
+    r.onload = function(){ handle(String(r.result), f.name); };
+    r.readAsText(f);
+  });
+
+  pasteGo.addEventListener('click', function(){ handle(pasteBox.value, 'pasted text'); });
+
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var btn = this;
+    function done(ok){
+      var old = btn.textContent;
+      btn.textContent = ok ? 'Copied' : 'Select & copy';
+      setTimeout(function(){ btn.textContent = old; }, 1600);
+      if(!ok){
+        var r = document.createElement('range');
+      }
+    }
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(lastReportText).then(function(){ done(true); }).catch(function(){ done(false); });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = lastReportText; document.body.appendChild(ta); ta.select();
+      try{ document.execCommand('copy'); done(true); } catch(_){ done(false); }
+      document.body.removeChild(ta);
+    }
+  });
+
+  document.getElementById('printBtn').addEventListener('click', function(){ window.print(); });
+})();
+</script>
+</body>
+</html>
