@@ -6,6 +6,8 @@ Built for 100+ track sessions handed between engineers.
 
 **No account. No upload. No backend.** The file is read in the browser and never leaves the tab.
 
+**Run it online:** [lang3.co/tools/session-check](https://lang3.co/tools/session-check/) — same code, same behaviour. Prefer that link if you just want to check a session; clone this repo only if you want to read the code, host your own copy, or send a patch.
+
 ---
 
 ## Why it exists
